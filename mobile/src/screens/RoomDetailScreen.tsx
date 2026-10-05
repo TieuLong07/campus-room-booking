@@ -11,9 +11,12 @@ import {
 } from "react-native";
 import { RouteProp, useRoute, useNavigation } from "@react-navigation/native";
 import { Feather } from "@expo/vector-icons";
+import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 import { useRoom, useRoomSlots, useCreateBooking } from "../api/client";
+import { useUIStore } from "../stores/uiStore";
+import { useBookingDraftStore } from "../stores/bookingDraftStore";
 import { TimeSlotPicker } from "../components/TimeSlotPicker";
-import { RootStackParamList, TimeSlot } from "../types";
+import { RootStackParamList, TimeSlot, ROOM_TYPE_LABELS, AMENITY_LABELS } from "../types";
 
 type RoomDetailRouteProp = RouteProp<RootStackParamList, "RoomDetail">;
 
@@ -34,8 +37,9 @@ export const RoomDetailScreen: React.FC = () => {
     return d.toISOString().split("T")[0];
   }, []);
 
-  const [selectedDate, setSelectedDate] = useState<string>(todayStr);
-  const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
+  const { selectedDate, setSelectedDate, selectedSlot, setSelectedSlot, clearDraft } =
+    useBookingDraftStore();
+  const showToast = useUIStore((s) => s.showToast);
 
   const { data: room, isLoading: isLoadingRoom } = useRoom(roomId);
   const {
@@ -49,7 +53,7 @@ export const RoomDetailScreen: React.FC = () => {
 
   const handleBooking = async () => {
     if (!selectedSlot) {
-      Alert.alert("Chưa chọn giờ", "Vui lòng chọn một khung giờ còn trống");
+      showToast("Chưa chọn giờ", "Vui lòng chọn một khung giờ còn trống", "info");
       return;
     }
 
@@ -63,31 +67,31 @@ export const RoomDetailScreen: React.FC = () => {
         endTime: selectedSlot.endTime,
       });
 
-      Alert.alert(
+      showToast(
         "Đặt phòng thành công",
-        `Đã xác nhận đặt ${room?.code} (${selectedSlot.startTime} - ${selectedSlot.endTime}, ngày ${selectedDate})`,
-        [
-          {
-            text: "Xem lịch của tôi",
-            onPress: () => {
-              navigation.goBack();
-            },
-          },
-          { text: "Đóng", style: "cancel" },
-        ]
+        `Đã xác nhận ${room?.code} (${selectedSlot.startTime} - ${selectedSlot.endTime}, ngày ${selectedDate})`,
+        "success"
       );
-      setSelectedSlot(null);
+      clearDraft();
+      setTimeout(() => {
+        navigation.goBack();
+      }, 1000);
     } catch (err: any) {
       if (err.response?.status === 409) {
-        Alert.alert(
+        showToast(
           "Xung đột lịch đặt",
           err.response?.data?.message ||
-            "Khung giờ này vừa có người khác đặt trước. Vui lòng chọn khung giờ khác."
+            "Khung giờ này vừa có người khác đặt trước. Vui lòng chọn khung giờ khác.",
+          "conflict"
         );
         refetchSlots();
         setSelectedSlot(null);
       } else {
-        Alert.alert("Lỗi", err.response?.data?.message || "Không thể hoàn tất đặt phòng");
+        showToast(
+          "Lỗi",
+          err.response?.data?.message || "Không thể hoàn tất đặt phòng",
+          "error"
+        );
       }
     }
   };
@@ -103,13 +107,19 @@ export const RoomDetailScreen: React.FC = () => {
   return (
     <View style={styles.wrapper}>
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-        <Image source={{ uri: room.imageUrl }} style={styles.bannerImage} />
+        <Animated.Image
+          entering={FadeInDown.duration(300)}
+          source={{ uri: room.imageUrl }}
+          style={styles.bannerImage}
+        />
 
-        <View style={styles.content}>
+        <Animated.View entering={FadeInDown.duration(350).delay(80)} style={styles.content}>
           <View style={styles.headerRow}>
             <Text style={styles.codeText}>{room.code}</Text>
             <View style={styles.typeBadge}>
-              <Text style={styles.typeBadgeText}>{room.type}</Text>
+              <Text style={styles.typeBadgeText}>
+                {ROOM_TYPE_LABELS[room.type] || room.type}
+              </Text>
             </View>
           </View>
 
@@ -133,7 +143,7 @@ export const RoomDetailScreen: React.FC = () => {
             {room.amenities.map((item, idx) => (
               <View key={idx} style={styles.amenityChip}>
                 <Feather name="check-circle" size={11} color="#52525b" />
-                <Text style={styles.amenityText}>{item}</Text>
+                <Text style={styles.amenityText}>{AMENITY_LABELS[item] || item}</Text>
               </View>
             ))}
           </View>
@@ -194,11 +204,11 @@ export const RoomDetailScreen: React.FC = () => {
               onSelectSlot={(slot) => setSelectedSlot(slot)}
             />
           )}
-        </View>
+        </Animated.View>
       </ScrollView>
 
       {/* Footer Bar */}
-      <View style={styles.footer}>
+      <Animated.View entering={FadeInUp.duration(350).springify().damping(16)} style={styles.footer}>
         <View style={styles.footerInfo}>
           <Text style={styles.footerLabel}>KHUNG GIỜ ĐÃ CHỌN</Text>
           <Text style={styles.footerValue}>
@@ -220,10 +230,17 @@ export const RoomDetailScreen: React.FC = () => {
           {bookingMutation.isPending ? (
             <ActivityIndicator color="#ffffff" size="small" />
           ) : (
-            <Text style={styles.bookButtonText}>Xác nhận đặt phòng</Text>
+            <Text
+              style={[
+                styles.bookButtonText,
+                !selectedSlot && styles.bookButtonTextDisabled,
+              ]}
+            >
+              Xác nhận đặt phòng
+            </Text>
           )}
         </TouchableOpacity>
-      </View>
+      </Animated.View>
     </View>
   );
 };
@@ -420,12 +437,17 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   bookButtonDisabled: {
-    backgroundColor: "#e4e4e7",
+    backgroundColor: "#f4f4f5",
+    borderWidth: 1,
+    borderColor: "#e4e4e7",
   },
   bookButtonText: {
     color: "#ffffff",
     fontWeight: "600",
     fontSize: 13,
     letterSpacing: -0.2,
+  },
+  bookButtonTextDisabled: {
+    color: "#71717a", // WCAG AA 4.6:1 contrast against #f4f4f5
   },
 });

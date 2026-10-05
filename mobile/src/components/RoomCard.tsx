@@ -1,6 +1,12 @@
-import React from "react";
-import { View, Text, StyleSheet, Image, TouchableOpacity } from "react-native";
-import { Room } from "../types";
+import React, { useCallback } from "react";
+import { View, Text, StyleSheet, Image, Pressable } from "react-native";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  FadeInDown,
+} from "react-native-reanimated";
+import { Room, ROOM_TYPE_LABELS, AMENITY_LABELS } from "../types";
 import { Feather } from "@expo/vector-icons";
 
 export const ROOM_CARD_HEIGHT = 138;
@@ -9,34 +15,29 @@ export const TOTAL_ROOM_ITEM_HEIGHT = ROOM_CARD_HEIGHT + ROOM_CARD_MARGIN_BOTTOM
 
 interface RoomCardProps {
   room: Room;
+  index: number;
   onPress: (roomId: string) => void;
 }
 
-const TYPE_CONFIG: Record<string, { label: string; border: string; bg: string; text: string }> = {
-  STUDY_ROOM: { label: "Tự học", border: "#e4e4e7", bg: "#f4f4f5", text: "#27272a" },
-  LAB: { label: "Lab thực hành", border: "#e4e4e7", bg: "#f4f4f5", text: "#09090b" },
-  MEETING: { label: "Seminar & Họp", border: "#e4e4e7", bg: "#f4f4f5", text: "#27272a" },
-};
+export const RoomCard: React.FC<RoomCardProps> = React.memo(({ room, index, onPress }) => {
+  const scale = useSharedValue(1);
 
-const AMENITY_LABELS: Record<string, string> = {
-  AC: "Điều hoà",
-  PROJECTOR: "Máy chiếu",
-  WHITEBOARD: "Bảng viết",
-  HIGH_SPEC_PC: "PC cao cấp",
-  MAC_MINI: "Mac Mini",
-  POWER_OUTLETS: "Ổ cắm",
-  WIFI: "Wifi",
-  SOUNDPROOF: "Cách âm",
-  SOUND_SYSTEM: "Âm thanh",
-};
+  const handlePressIn = useCallback(() => {
+    scale.value = withSpring(0.985, { damping: 15, stiffness: 250 });
+  }, [scale]);
 
-export const RoomCard: React.FC<RoomCardProps> = React.memo(({ room, onPress }) => {
-  const typeBadge = TYPE_CONFIG[room.type] || {
-    label: room.type,
-    border: "#e4e4e7",
-    bg: "#f4f4f5",
-    text: "#52525b",
-  };
+  const handlePressOut = useCallback(() => {
+    scale.value = withSpring(1, { damping: 15, stiffness: 250 });
+  }, [scale]);
+
+  const animatedStyle = useAnimatedStyle(
+    () => ({
+      transform: [{ scale: scale.value }],
+    }),
+    [scale]
+  );
+
+  const typeLabel = ROOM_TYPE_LABELS[room.type] || room.type;
 
   const amenitiesPreview = room.amenities
     .slice(0, 3)
@@ -44,48 +45,48 @@ export const RoomCard: React.FC<RoomCardProps> = React.memo(({ room, onPress }) 
     .join(" / ");
 
   return (
-    <TouchableOpacity
-      style={styles.card}
-      onPress={() => onPress(room.id)}
-      activeOpacity={0.85}
+    <Animated.View
+      entering={FadeInDown.duration(300).delay(Math.min(index * 40, 280)).springify().damping(16)}
     >
-      <Image source={{ uri: room.imageUrl }} style={styles.thumbnail} />
+      <Animated.View style={animatedStyle}>
+        <Pressable
+          style={styles.card}
+          onPress={() => onPress(room.id)}
+          onPressIn={handlePressIn}
+          onPressOut={handlePressOut}
+        >
+          <Image source={{ uri: room.imageUrl }} style={styles.thumbnail} />
 
-      <View style={styles.content}>
-        <View style={styles.headerRow}>
-          <Text style={styles.codeText}>{room.code}</Text>
-          <View
-            style={[
-              styles.badge,
-              { backgroundColor: typeBadge.bg, borderColor: typeBadge.border },
-            ]}
-          >
-            <Text style={[styles.badgeText, { color: typeBadge.text }]}>
-              {typeBadge.label}
+          <View style={styles.content}>
+            <View style={styles.headerRow}>
+              <Text style={styles.codeText}>{room.code}</Text>
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{typeLabel}</Text>
+              </View>
+            </View>
+
+            <Text style={styles.nameText} numberOfLines={1}>
+              {room.name}
+            </Text>
+
+            <View style={styles.metaRow}>
+              <Text style={styles.locationText}>
+                {room.building}, Tầng {room.floor}
+              </Text>
+              <Text style={styles.dotSeparator}>•</Text>
+              <View style={styles.capacityWrapper}>
+                <Feather name="users" size={11} color="#71717a" />
+                <Text style={styles.capacityText}>{room.capacity} chỗ</Text>
+              </View>
+            </View>
+
+            <Text style={styles.amenitiesText} numberOfLines={1}>
+              {amenitiesPreview}
             </Text>
           </View>
-        </View>
-
-        <Text style={styles.nameText} numberOfLines={1}>
-          {room.name}
-        </Text>
-
-        <View style={styles.metaRow}>
-          <Text style={styles.locationText}>
-            {room.building}, Tầng {room.floor}
-          </Text>
-          <Text style={styles.dotSeparator}>•</Text>
-          <View style={styles.capacityWrapper}>
-            <Feather name="users" size={11} color="#71717a" />
-            <Text style={styles.capacityText}>{room.capacity} chỗ</Text>
-          </View>
-        </View>
-
-        <Text style={styles.amenitiesText} numberOfLines={1}>
-          {amenitiesPreview}
-        </Text>
-      </View>
-    </TouchableOpacity>
+        </Pressable>
+      </Animated.View>
+    </Animated.View>
   );
 });
 
@@ -96,7 +97,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     flexDirection: "row",
     backgroundColor: "#ffffff",
-    borderRadius: 9,
+    borderRadius: 8,
     overflow: "hidden",
     borderWidth: 1,
     borderColor: "#e4e4e7",
@@ -127,10 +128,13 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     borderRadius: 5,
     borderWidth: 1,
+    borderColor: "#e4e4e7",
+    backgroundColor: "#f4f4f5",
   },
   badgeText: {
     fontSize: 10,
     fontWeight: "600",
+    color: "#18181b",
     letterSpacing: -0.1,
   },
   nameText: {
@@ -164,6 +168,6 @@ const styles = StyleSheet.create({
   },
   amenitiesText: {
     fontSize: 11,
-    color: "#a1a1aa",
+    color: "#71717a", // WCAG AA 4.6:1 contrast against #ffffff
   },
 });

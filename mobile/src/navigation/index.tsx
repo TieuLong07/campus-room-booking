@@ -31,16 +31,16 @@ const TabNavigator = () => {
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: "600",
-          letterSpacing: -0.2,
-          marginTop: -2,
+          letterSpacing: -0.1,
+          marginBottom: 2,
         },
         tabBarStyle: {
           backgroundColor: "#ffffff",
           borderTopWidth: 1,
           borderTopColor: "#f4f4f5",
-          height: 60,
+          height: 64,
           paddingBottom: 8,
-          paddingTop: 6,
+          paddingTop: 8,
         },
       }}
     >
@@ -100,4 +100,19 @@ export const AppNavigator = () => {
       />
     </Stack.Navigator>
   );
+};
+
+export const linking = {
+  prefixes: ["/"],
+  config: {
+    screens: {
+      MainTabs: {
+        screens: {
+          Explore: "",
+          MyBookings: "my-bookings",
+        },
+      },
+      RoomDetail: "room/:roomId",
+    },
+  },
 };

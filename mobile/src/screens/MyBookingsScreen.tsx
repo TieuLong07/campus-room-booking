@@ -10,14 +10,18 @@ import {
   Alert,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
+import { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import { Feather } from "@expo/vector-icons";
+import Animated, { FadeInDown } from "react-native-reanimated";
 import { useMyBookings, useCancelBooking } from "../api/client";
-import { Booking } from "../types";
+import { useUIStore } from "../stores/uiStore";
+import { Booking, MainTabParamList, ROOM_TYPE_LABELS } from "../types";
 
 export const MyBookingsScreen: React.FC = () => {
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<BottomTabNavigationProp<MainTabParamList>>();
   const { data: bookings = [], isLoading, isRefetching, refetch } = useMyBookings();
   const cancelMutation = useCancelBooking();
+  const showToast = useUIStore((s) => s.showToast);
 
   const handleCancel = (booking: Booking) => {
     Alert.alert(
@@ -31,8 +35,9 @@ export const MyBookingsScreen: React.FC = () => {
           onPress: async () => {
             try {
               await cancelMutation.mutateAsync(booking.id);
+              showToast("Đã huỷ lịch", `Lịch phòng ${booking.room?.code} đã được giải phóng.`, "info");
             } catch (err: any) {
-              Alert.alert("Lỗi", err.response?.data?.message || "Không thể huỷ lịch");
+              showToast("Lỗi", err.response?.data?.message || "Không thể huỷ lịch", "error");
             }
           },
         },
@@ -40,17 +45,24 @@ export const MyBookingsScreen: React.FC = () => {
     );
   };
 
-  const renderBookingItem = ({ item }: { item: Booking }) => {
+  const renderBookingItem = ({ item, index }: { item: Booking; index: number }) => {
     const isCancelled = item.status === "CANCELLED";
+    const typeLabel = ROOM_TYPE_LABELS[item.room?.type || ""] || item.room?.type || "Phòng học";
 
     return (
-      <View style={[styles.card, isCancelled && styles.cardCancelled]}>
+      <Animated.View
+        entering={FadeInDown.duration(300).delay(Math.min(index * 40, 280)).springify()}
+        style={[styles.ticketCard, isCancelled && styles.cardCancelled]}
+      >
+        {/* Ticket Header */}
         <View style={styles.cardHeader}>
           <View style={styles.codeGroup}>
             <Text style={[styles.roomCode, isCancelled && styles.textMuted]}>
               {item.room?.code || "PHÒNG"}
             </Text>
-            <Text style={styles.roomType}>{item.room?.type || "STUDY"}</Text>
+            <View style={styles.typeBadge}>
+              <Text style={styles.typeBadgeText}>{typeLabel}</Text>
+            </View>
           </View>
 
           <View
@@ -80,36 +92,52 @@ export const MyBookingsScreen: React.FC = () => {
           {item.room?.name || "Không gian campus"}
         </Text>
 
-        <View style={styles.infoRow}>
-          <View style={styles.infoItem}>
-            <Feather name="calendar" size={12} color="#71717a" />
-            <Text style={styles.infoText}>{item.bookingDate}</Text>
+        {/* Perforated Divider */}
+        <View style={styles.dividerRow}>
+          <View style={styles.dividerLine} />
+        </View>
+
+        {/* Ticket Meta Details without nested box */}
+        <View style={styles.metaRow}>
+          <View style={styles.metaCol}>
+            <Text style={styles.metaLabel}>NGÀY ĐẶT</Text>
+            <View style={styles.metaValRow}>
+              <Feather name="calendar" size={12} color="#71717a" />
+              <Text style={styles.metaValue}>{item.bookingDate}</Text>
+            </View>
           </View>
-          <View style={styles.infoItem}>
-            <Feather name="clock" size={12} color="#71717a" />
-            <Text style={styles.infoTextBold}>
-              {item.startTime} - {item.endTime}
+
+          <View style={styles.metaCol}>
+            <Text style={styles.metaLabel}>KHUNG GIỜ</Text>
+            <View style={styles.metaValRow}>
+              <Feather name="clock" size={12} color="#71717a" />
+              <Text style={styles.metaValueBold}>
+                {item.startTime} - {item.endTime}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.metaCol}>
+            <Text style={styles.metaLabel}>VỊ TRÍ</Text>
+            <Text style={styles.metaValue}>
+              {item.room?.building} • T{item.room?.floor}
             </Text>
           </View>
         </View>
 
-        <View style={styles.footerRow}>
-          <Text style={styles.locationText}>
-            {item.room?.building}, Tầng {item.room?.floor}
-          </Text>
-
-          {!isCancelled && (
+        {!isCancelled && (
+          <View style={styles.actionRow}>
             <TouchableOpacity
               style={styles.cancelBtn}
               onPress={() => handleCancel(item)}
               activeOpacity={0.7}
             >
               <Feather name="x" size={12} color="#71717a" />
-              <Text style={styles.cancelBtnText}>Huỷ lịch</Text>
+              <Text style={styles.cancelBtnText}>Huỷ lịch này</Text>
             </TouchableOpacity>
-          )}
-        </View>
-      </View>
+          </View>
+        )}
+      </Animated.View>
     );
   };
 
@@ -163,7 +191,8 @@ const styles = StyleSheet.create({
   },
   listContent: {
     padding: 16,
-    gap: 10,
+    paddingBottom: 84, // Tránh bị thanh bottom tab che mất thẻ cuối
+    gap: 12,
   },
   centerContainer: {
     flex: 1,
@@ -175,7 +204,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#71717a",
   },
-  card: {
+  ticketCard: {
     backgroundColor: "#ffffff",
     borderRadius: 8,
     padding: 14,
@@ -183,9 +212,8 @@ const styles = StyleSheet.create({
     borderColor: "#e4e4e7",
   },
   cardCancelled: {
-    backgroundColor: "#fcfcfc",
-    borderColor: "#f4f4f5",
-    opacity: 0.65,
+    backgroundColor: "#fafafa",
+    borderColor: "#e4e4e7",
   },
   cardHeader: {
     flexDirection: "row",
@@ -194,8 +222,8 @@ const styles = StyleSheet.create({
   },
   codeGroup: {
     flexDirection: "row",
-    alignItems: "baseline",
-    gap: 6,
+    alignItems: "center",
+    gap: 8,
   },
   roomCode: {
     fontSize: 16,
@@ -203,10 +231,18 @@ const styles = StyleSheet.create({
     color: "#09090b",
     letterSpacing: -0.3,
   },
-  roomType: {
+  typeBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    backgroundColor: "#f4f4f5",
+    borderWidth: 1,
+    borderColor: "#e4e4e7",
+  },
+  typeBadgeText: {
     fontSize: 10,
     fontWeight: "600",
-    color: "#a1a1aa",
+    color: "#52525b",
   },
   statusBadge: {
     flexDirection: "row",
@@ -250,46 +286,53 @@ const styles = StyleSheet.create({
   roomName: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#27272a",
+    color: "#18181b",
     marginTop: 4,
     letterSpacing: -0.1,
   },
   textMuted: {
     color: "#71717a",
   },
-  infoRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-    marginTop: 10,
-    paddingVertical: 7,
-    paddingHorizontal: 10,
-    backgroundColor: "#f4f4f5",
-    borderRadius: 6,
+  dividerRow: {
+    marginVertical: 10,
   },
-  infoItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
+  dividerLine: {
+    borderBottomWidth: 1,
+    borderBottomColor: "#f4f4f5",
   },
-  infoText: {
-    fontSize: 12,
-    color: "#52525b",
-  },
-  infoTextBold: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#09090b",
-  },
-  footerRow: {
+  metaRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: 10,
+    alignItems: "flex-start",
   },
-  locationText: {
+  metaCol: {
+    gap: 3,
+  },
+  metaLabel: {
+    fontSize: 9,
+    fontWeight: "700",
+    color: "#a1a1aa",
+    letterSpacing: 0.5,
+  },
+  metaValRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  metaValue: {
     fontSize: 11,
-    color: "#71717a",
+    color: "#52525b",
+    fontWeight: "500",
+  },
+  metaValueBold: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#09090b",
+  },
+  actionRow: {
+    marginTop: 12,
+    flexDirection: "row",
+    justifyContent: "flex-end",
   },
   cancelBtn: {
     flexDirection: "row",

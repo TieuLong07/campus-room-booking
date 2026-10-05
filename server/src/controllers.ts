@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { Prisma } from "@prisma/client";
 import { prisma } from "./db";
 import { CAMPUS_SLOTS } from "./types";
 import { z } from "zod";
@@ -7,7 +8,7 @@ export const getRooms = async (req: Request, res: Response) => {
   try {
     const { search, building, type, minCapacity } = req.query;
 
-    const where: any = { isActive: true };
+    const where: Prisma.RoomWhereInput = { isActive: true };
 
     if (search && typeof search === "string" && search.trim() !== "") {
       const q = search.trim();

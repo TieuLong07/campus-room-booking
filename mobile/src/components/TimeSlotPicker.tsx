@@ -54,7 +54,7 @@ export const TimeSlotPicker: React.FC<TimeSlotPickerProps> = ({
                   isSelected && styles.labelSelected,
                 ]}
               >
-                {slot.label}
+                {slot.label.replace(/\s*\(.*?\)/, "")}
               </Text>
             </View>
 

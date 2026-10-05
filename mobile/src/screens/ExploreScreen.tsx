@@ -59,8 +59,8 @@ export const ExploreScreen: React.FC = () => {
   );
 
   const renderItem = useCallback(
-    ({ item }: { item: Room }) => (
-      <RoomCard room={item} onPress={handleRoomPress} />
+    ({ item, index }: { item: Room; index: number }) => (
+      <RoomCard room={item} index={index} onPress={handleRoomPress} />
     ),
     [handleRoomPress]
   );
@@ -68,7 +68,7 @@ export const ExploreScreen: React.FC = () => {
   const keyExtractor = useCallback((item: Room) => item.id, []);
 
   const getItemLayout = useCallback(
-    (_: any, index: number) => ({
+    (_: ArrayLike<Room> | null | undefined, index: number) => ({
       length: TOTAL_ROOM_ITEM_HEIGHT,
       offset: TOTAL_ROOM_ITEM_HEIGHT * index,
       index,
@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingTop: 4,
-    paddingBottom: 24,
+    paddingBottom: 84, // Tránh bị thanh bottom tab che mất thẻ cuối
   },
   centerContainer: {
     flex: 1,
