@@ -1,0 +1,40 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Room {
+  id          String    @id @default(cuid())
+  code        String    @unique
+  name        String
+  building    String
+  floor       Int
+  capacity    Int
+  type        String    // STUDY_ROOM, LAB, MEETING
+  amenities   String    // JSON array string: ["AC", "PROJECTOR", "WHITEBOARD", "PC"]
+  imageUrl    String
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  bookings    Booking[]
+}
+
+model Booking {
+  id          String    @id @default(cuid())
+  roomId      String
+  room        Room      @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  userId      String    // Mock user id e.g. "SV1024"
+  userName    String    @default("Sinh viên Đại học")
+  bookingDate String    // YYYY-MM-DD
+  startTime   String    // HH:mm, e.g. "08:00"
+  endTime     String    // HH:mm, e.g. "10:00"
+  status      String    @default("CONFIRMED") // CONFIRMED, CANCELLED
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([roomId, bookingDate, status])
+}

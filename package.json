@@ -1,0 +1,17 @@
+{
+  "name": "campus-room-booking",
+  "version": "1.0.0",
+  "description": "Mini-Project 2: Interactive Mobile Booking App for Campus Study Rooms & Labs",
+  "scripts": {
+    "server:dev": "npm --prefix server run dev",
+    "server:seed": "npm --prefix server run db:seed",
+    "server:test": "npm --prefix server run test:conflict",
+    "mobile:start": "npm --prefix mobile run start",
+    "mobile:android": "npm --prefix mobile run android",
+    "mobile:ios": "npm --prefix mobile run ios",
+    "mobile:web": "npm --prefix mobile run web"
+  },
+  "keywords": ["react-native", "expo", "zustand", "tanstack-query", "prisma", "sqlite"],
+  "author": "Nguyen Hoang Long",
+  "license": "ISC"
+}
