@@ -15,11 +15,14 @@ import { Feather } from "@expo/vector-icons";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { useMyBookings, useCancelBooking } from "../api/client";
 import { useUIStore } from "../stores/uiStore";
+import { useAuthStore } from "../stores/authStore";
 import { Booking, MainTabParamList, ROOM_TYPE_LABELS } from "../types";
 
 export const MyBookingsScreen: React.FC = () => {
   const navigation = useNavigation<BottomTabNavigationProp<MainTabParamList>>();
-  const { data: bookings = [], isLoading, isRefetching, refetch } = useMyBookings();
+  const user = useAuthStore((s) => s.user);
+  const activeUserId = user?.id || "SV1024";
+  const { data: bookings = [], isLoading, isRefetching, refetch } = useMyBookings(activeUserId);
   const cancelMutation = useCancelBooking();
   const showToast = useUIStore((s) => s.showToast);
 

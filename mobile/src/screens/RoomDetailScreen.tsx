@@ -15,6 +15,7 @@ import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 import { useRoom, useRoomSlots, useCreateBooking } from "../api/client";
 import { useUIStore } from "../stores/uiStore";
 import { useBookingDraftStore } from "../stores/bookingDraftStore";
+import { useAuthStore } from "../stores/authStore";
 import { TimeSlotPicker } from "../components/TimeSlotPicker";
 import { RootStackParamList, TimeSlot, ROOM_TYPE_LABELS, AMENITY_LABELS } from "../types";
 
@@ -40,6 +41,7 @@ export const RoomDetailScreen: React.FC = () => {
   const { selectedDate, setSelectedDate, selectedSlot, setSelectedSlot, clearDraft } =
     useBookingDraftStore();
   const showToast = useUIStore((s) => s.showToast);
+  const user = useAuthStore((s) => s.user);
 
   const { data: room, isLoading: isLoadingRoom } = useRoom(roomId);
   const {
@@ -58,10 +60,18 @@ export const RoomDetailScreen: React.FC = () => {
     }
 
     try {
+      const activeUserId = user?.id || "SV1024";
+      const activeUserName =
+        user?.user_metadata?.full_name ||
+        user?.user_metadata?.name ||
+        user?.email?.split("@")[0] ||
+        "Nguyễn Hoàng Long (SV1024)";
+
       await bookingMutation.mutateAsync({
         roomId,
-        userId: "SV1024",
-        userName: "Nguyễn Hoàng Long (SV1024)",
+        userId: activeUserId,
+        userName: activeUserName,
+        userEmail: user?.email,
         bookingDate: selectedDate,
         startTime: selectedSlot.startTime,
         endTime: selectedSlot.endTime,
