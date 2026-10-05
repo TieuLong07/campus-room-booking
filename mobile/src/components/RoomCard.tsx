@@ -1,9 +1,10 @@
 import React from "react";
 import { View, Text, StyleSheet, Image, TouchableOpacity } from "react-native";
 import { Room } from "../types";
+import { Feather } from "@expo/vector-icons";
 
-export const ROOM_CARD_HEIGHT = 136;
-export const ROOM_CARD_MARGIN_BOTTOM = 12;
+export const ROOM_CARD_HEIGHT = 138;
+export const ROOM_CARD_MARGIN_BOTTOM = 10;
 export const TOTAL_ROOM_ITEM_HEIGHT = ROOM_CARD_HEIGHT + ROOM_CARD_MARGIN_BOTTOM;
 
 interface RoomCardProps {
@@ -11,17 +12,17 @@ interface RoomCardProps {
   onPress: (roomId: string) => void;
 }
 
-const TYPE_CONFIG: Record<string, { label: string; bg: string; color: string }> = {
-  STUDY_ROOM: { label: "Tự học", bg: "#dbeafe", color: "#1d4ed8" },
-  LAB: { label: "Lab", bg: "#fef3c7", color: "#b45309" },
-  MEETING: { label: "Hội thảo", bg: "#ede9fe", color: "#6d28d9" },
+const TYPE_CONFIG: Record<string, { label: string; border: string; bg: string; text: string }> = {
+  STUDY_ROOM: { label: "Tự học", border: "#e4e4e7", bg: "#f4f4f5", text: "#27272a" },
+  LAB: { label: "Lab thực hành", border: "#e4e4e7", bg: "#f4f4f5", text: "#09090b" },
+  MEETING: { label: "Seminar & Họp", border: "#e4e4e7", bg: "#f4f4f5", text: "#27272a" },
 };
 
 const AMENITY_LABELS: Record<string, string> = {
   AC: "Điều hoà",
   PROJECTOR: "Máy chiếu",
   WHITEBOARD: "Bảng viết",
-  HIGH_SPEC_PC: "PC cấu hình cao",
+  HIGH_SPEC_PC: "PC cao cấp",
   MAC_MINI: "Mac Mini",
   POWER_OUTLETS: "Ổ cắm",
   WIFI: "Wifi",
@@ -32,28 +33,34 @@ const AMENITY_LABELS: Record<string, string> = {
 export const RoomCard: React.FC<RoomCardProps> = React.memo(({ room, onPress }) => {
   const typeBadge = TYPE_CONFIG[room.type] || {
     label: room.type,
-    bg: "#f1f5f9",
-    color: "#475569",
+    border: "#e4e4e7",
+    bg: "#f4f4f5",
+    text: "#52525b",
   };
 
   const amenitiesPreview = room.amenities
     .slice(0, 3)
     .map((a) => AMENITY_LABELS[a] || a)
-    .join(" • ");
+    .join(" / ");
 
   return (
     <TouchableOpacity
       style={styles.card}
       onPress={() => onPress(room.id)}
-      activeOpacity={0.8}
+      activeOpacity={0.85}
     >
       <Image source={{ uri: room.imageUrl }} style={styles.thumbnail} />
 
       <View style={styles.content}>
         <View style={styles.headerRow}>
           <Text style={styles.codeText}>{room.code}</Text>
-          <View style={[styles.badge, { backgroundColor: typeBadge.bg }]}>
-            <Text style={[styles.badgeText, { color: typeBadge.color }]}>
+          <View
+            style={[
+              styles.badge,
+              { backgroundColor: typeBadge.bg, borderColor: typeBadge.border },
+            ]}
+          >
+            <Text style={[styles.badgeText, { color: typeBadge.text }]}>
               {typeBadge.label}
             </Text>
           </View>
@@ -63,9 +70,16 @@ export const RoomCard: React.FC<RoomCardProps> = React.memo(({ room, onPress }) 
           {room.name}
         </Text>
 
-        <Text style={styles.locationText}>
-          {room.building} - Tầng {room.floor} | Sức chứa: {room.capacity} người
-        </Text>
+        <View style={styles.metaRow}>
+          <Text style={styles.locationText}>
+            {room.building}, Tầng {room.floor}
+          </Text>
+          <Text style={styles.dotSeparator}>•</Text>
+          <View style={styles.capacityWrapper}>
+            <Feather name="users" size={11} color="#71717a" />
+            <Text style={styles.capacityText}>{room.capacity} chỗ</Text>
+          </View>
+        </View>
 
         <Text style={styles.amenitiesText} numberOfLines={1}>
           {amenitiesPreview}
@@ -82,24 +96,19 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     flexDirection: "row",
     backgroundColor: "#ffffff",
-    borderRadius: 12,
+    borderRadius: 9,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: "#e2e8f0",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 2,
+    borderColor: "#e4e4e7",
   },
   thumbnail: {
-    width: 110,
+    width: 114,
     height: "100%",
-    backgroundColor: "#cbd5e1",
+    backgroundColor: "#f4f4f5",
   },
   content: {
     flex: 1,
-    padding: 10,
+    padding: 12,
     justifyContent: "space-between",
   },
   headerRow: {
@@ -110,28 +119,51 @@ const styles = StyleSheet.create({
   codeText: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#0f172a",
+    color: "#09090b",
+    letterSpacing: -0.2,
   },
   badge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 5,
+    borderWidth: 1,
   },
   badgeText: {
     fontSize: 10,
     fontWeight: "600",
+    letterSpacing: -0.1,
   },
   nameText: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#334155",
+    color: "#18181b",
+    letterSpacing: -0.2,
+  },
+  metaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
   },
   locationText: {
     fontSize: 11,
-    color: "#64748b",
+    color: "#71717a",
+  },
+  dotSeparator: {
+    fontSize: 10,
+    color: "#d4d4d8",
+  },
+  capacityWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  capacityText: {
+    fontSize: 11,
+    color: "#71717a",
+    fontWeight: "500",
   },
   amenitiesText: {
     fontSize: 11,
-    color: "#94a3b8",
+    color: "#a1a1aa",
   },
 });

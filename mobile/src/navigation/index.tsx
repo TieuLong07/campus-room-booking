@@ -1,11 +1,11 @@
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { Feather } from "@expo/vector-icons";
 import { ExploreScreen } from "../screens/ExploreScreen";
 import { RoomDetailScreen } from "../screens/RoomDetailScreen";
 import { MyBookingsScreen } from "../screens/MyBookingsScreen";
 import { RootStackParamList, MainTabParamList } from "../types";
-import { Text } from "react-native";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<MainTabParamList>();
@@ -14,13 +14,33 @@ const TabNavigator = () => {
   return (
     <Tab.Navigator
       screenOptions={{
-        headerStyle: { backgroundColor: "#ffffff" },
-        headerTitleStyle: { fontWeight: "700", color: "#0f172a" },
-        tabBarActiveTintColor: "#2563eb",
-        tabBarInactiveTintColor: "#64748b",
+        headerStyle: {
+          backgroundColor: "#ffffff",
+          elevation: 0,
+          shadowOpacity: 0,
+          borderBottomWidth: 1,
+          borderBottomColor: "#f4f4f5",
+        },
+        headerTitleStyle: {
+          fontWeight: "700",
+          fontSize: 16,
+          color: "#09090b",
+        },
+        tabBarActiveTintColor: "#09090b",
+        tabBarInactiveTintColor: "#a1a1aa",
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: "600",
+          letterSpacing: -0.2,
+          marginTop: -2,
+        },
         tabBarStyle: {
           backgroundColor: "#ffffff",
-          borderTopColor: "#e2e8f0",
+          borderTopWidth: 1,
+          borderTopColor: "#f4f4f5",
+          height: 60,
+          paddingBottom: 8,
+          paddingTop: 6,
         },
       }}
     >
@@ -28,18 +48,22 @@ const TabNavigator = () => {
         name="Explore"
         component={ExploreScreen}
         options={{
-          title: "Khám phá phòng học",
+          title: "Không gian học & Lab",
           tabBarLabel: "Khám phá",
-          tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 16 }}>🏫</Text>,
+          tabBarIcon: ({ color, size }) => (
+            <Feather name="grid" size={20} color={color} />
+          ),
         }}
       />
       <Tab.Screen
         name="MyBookings"
         component={MyBookingsScreen}
         options={{
-          title: "Lịch đặt của tôi",
+          title: "Lịch đặt phòng",
           tabBarLabel: "Lịch của tôi",
-          tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 16 }}>📅</Text>,
+          tabBarIcon: ({ color, size }) => (
+            <Feather name="calendar" size={20} color={color} />
+          ),
         }}
       />
     </Tab.Navigator>
@@ -50,9 +74,15 @@ export const AppNavigator = () => {
   return (
     <Stack.Navigator
       screenOptions={{
-        headerStyle: { backgroundColor: "#ffffff" },
-        headerTintColor: "#0f172a",
-        headerTitleStyle: { fontWeight: "700" },
+        headerStyle: {
+          backgroundColor: "#ffffff",
+        },
+        headerTintColor: "#09090b",
+        headerTitleStyle: {
+          fontWeight: "700",
+          fontSize: 16,
+        },
+        headerShadowVisible: false,
       }}
     >
       <Stack.Screen
@@ -64,7 +94,7 @@ export const AppNavigator = () => {
         name="RoomDetail"
         component={RoomDetailScreen}
         options={{
-          title: "Chi tiết phòng học",
+          title: "Chi tiết không gian",
           headerBackTitle: "Quay lại",
         }}
       />

@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Room, TimeSlot, Booking } from "../types";
 
 // Thay đổi LAN_IP nếu chạy Expo Go trên điện thoại thật
-const LAN_IP = "192.168.1.100"; 
+const LAN_IP = "192.168.1.3"; 
 export const API_BASE_URL = Platform.select({
   android: "http://10.0.2.2:5000/api",
   ios: "http://localhost:5000/api",

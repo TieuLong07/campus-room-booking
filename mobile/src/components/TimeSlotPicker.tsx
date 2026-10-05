@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { TimeSlot } from "../types";
+import { Feather } from "@expo/vector-icons";
 
 interface TimeSlotPickerProps {
   slots: TimeSlot[];
@@ -24,35 +25,66 @@ export const TimeSlotPicker: React.FC<TimeSlotPickerProps> = ({
             key={slot.id}
             disabled={isBooked}
             onPress={() => onSelectSlot(slot)}
-            activeOpacity={0.7}
+            activeOpacity={0.8}
             style={[
               styles.slotCard,
               isBooked && styles.slotBooked,
               isSelected && styles.slotSelected,
             ]}
           >
-            <View style={styles.timeRow}>
+            <View style={styles.infoCol}>
+              <View style={styles.timeRow}>
+                <Text
+                  style={[
+                    styles.timeText,
+                    isBooked && styles.textBooked,
+                    isSelected && styles.textSelected,
+                  ]}
+                >
+                  {slot.startTime} - {slot.endTime}
+                </Text>
+                {isSelected && (
+                  <Feather name="check" size={14} color="#ffffff" style={styles.checkIcon} />
+                )}
+              </View>
               <Text
                 style={[
-                  styles.timeText,
-                  isBooked && styles.textBooked,
-                  isSelected && styles.textSelected,
+                  styles.slotLabel,
+                  isBooked && styles.labelBooked,
+                  isSelected && styles.labelSelected,
                 ]}
               >
-                {slot.startTime} - {slot.endTime}
+                {slot.label}
               </Text>
             </View>
 
-            <View style={styles.statusRow}>
-              <Text
+            <View style={styles.statusCol}>
+              <View
                 style={[
-                  styles.statusBadge,
-                  isBooked ? styles.statusBadgeBooked : styles.statusBadgeAvailable,
-                  isSelected && styles.statusBadgeSelected,
+                  styles.badge,
+                  isBooked
+                    ? styles.badgeBooked
+                    : isSelected
+                    ? styles.badgeSelected
+                    : styles.badgeAvailable,
                 ]}
               >
-                {isBooked ? "Đã có người đặt" : isSelected ? "Đang chọn" : "Còn trống"}
-              </Text>
+                {!isBooked && !isSelected && (
+                  <View style={styles.statusDot} />
+                )}
+                <Text
+                  style={[
+                    styles.badgeText,
+                    isBooked
+                      ? styles.badgeTextBooked
+                      : isSelected
+                      ? styles.badgeTextSelected
+                      : styles.badgeTextAvailable,
+                  ]}
+                >
+                  {isBooked ? "Đã đặt" : isSelected ? "Đã chọn" : "Khả dụng"}
+                </Text>
+              </View>
             </View>
           </TouchableOpacity>
         );
@@ -63,63 +95,105 @@ export const TimeSlotPicker: React.FC<TimeSlotPickerProps> = ({
 
 const styles = StyleSheet.create({
   grid: {
-    gap: 8,
+    gap: 7,
   },
   slotCard: {
-    padding: 12,
-    borderRadius: 10,
+    paddingVertical: 11,
+    paddingHorizontal: 14,
+    borderRadius: 8,
     backgroundColor: "#ffffff",
-    borderWidth: 1.5,
-    borderColor: "#e2e8f0",
+    borderWidth: 1,
+    borderColor: "#e4e4e7",
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
   slotBooked: {
-    backgroundColor: "#f1f5f9",
-    borderColor: "#cbd5e1",
-    opacity: 0.65,
+    backgroundColor: "#fafafa",
+    borderColor: "#f4f4f5",
+    opacity: 0.6,
   },
   slotSelected: {
-    backgroundColor: "#2563eb",
-    borderColor: "#1d4ed8",
+    backgroundColor: "#09090b",
+    borderColor: "#09090b",
+  },
+  infoCol: {
+    flex: 1,
   },
   timeRow: {
-    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
   },
   timeText: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#0f172a",
+    color: "#09090b",
+    letterSpacing: -0.2,
+  },
+  checkIcon: {
+    marginLeft: 2,
   },
   textBooked: {
-    color: "#94a3b8",
+    color: "#a1a1aa",
     textDecorationLine: "line-through",
   },
   textSelected: {
     color: "#ffffff",
   },
-  statusRow: {
-    marginLeft: 8,
-  },
-  statusBadge: {
+  slotLabel: {
     fontSize: 11,
-    fontWeight: "600",
+    color: "#71717a",
+    marginTop: 2,
+  },
+  labelBooked: {
+    color: "#a1a1aa",
+  },
+  labelSelected: {
+    color: "#d4d4d8",
+  },
+  statusCol: {
+    marginLeft: 12,
+  },
+  badge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 6,
-    overflow: "hidden",
+    borderRadius: 5,
+    borderWidth: 1,
   },
-  statusBadgeAvailable: {
-    backgroundColor: "#dcfce7",
-    color: "#15803d",
+  badgeAvailable: {
+    backgroundColor: "#f0fdf4",
+    borderColor: "#bbf7d0",
   },
-  statusBadgeBooked: {
-    backgroundColor: "#fee2e2",
-    color: "#b91c1c",
+  badgeBooked: {
+    backgroundColor: "#f4f4f5",
+    borderColor: "#e4e4e7",
   },
-  statusBadgeSelected: {
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
+  badgeSelected: {
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    borderColor: "rgba(255, 255, 255, 0.3)",
+  },
+  statusDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: "#16a34a",
+  },
+  badgeText: {
+    fontSize: 10,
+    fontWeight: "600",
+    letterSpacing: -0.1,
+  },
+  badgeTextAvailable: {
+    color: "#16a34a",
+  },
+  badgeTextBooked: {
+    color: "#71717a",
+  },
+  badgeTextSelected: {
     color: "#ffffff",
   },
 });

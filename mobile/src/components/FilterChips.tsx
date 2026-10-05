@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
 import { useFilterStore } from "../stores/filterStore";
+import { Feather } from "@expo/vector-icons";
 
 const BUILDINGS = [
   { label: "Tất cả toà", value: "ALL" },
@@ -11,17 +12,17 @@ const BUILDINGS = [
 ];
 
 const ROOM_TYPES = [
-  { label: "Mọi loại phòng", value: "ALL" },
-  { label: "Tự học", value: "STUDY_ROOM" },
+  { label: "Tất cả loại", value: "ALL" },
+  { label: "Phòng tự học", value: "STUDY_ROOM" },
   { label: "Lab máy tính", value: "LAB" },
-  { label: "Seminar / Họp", value: "MEETING" },
+  { label: "Seminar & Họp", value: "MEETING" },
 ];
 
 const CAPACITIES = [
-  { label: "Sức chứa: Bất kỳ", value: 0 },
-  { label: "4+ người", value: 4 },
-  { label: "10+ người", value: 10 },
-  { label: "20+ người", value: 20 },
+  { label: "Bất kỳ quy mô", value: 0 },
+  { label: "Từ 4 chỗ", value: 4 },
+  { label: "Từ 10 chỗ", value: 10 },
+  { label: "Từ 20 chỗ", value: 20 },
 ];
 
 export const FilterChips: React.FC = () => {
@@ -32,60 +33,82 @@ export const FilterChips: React.FC = () => {
     setSelectedType,
     minCapacity,
     setMinCapacity,
+    resetFilters,
   } = useFilterStore();
+
+  const isFiltered =
+    selectedBuilding !== "ALL" || selectedType !== "ALL" || minCapacity > 0;
 
   return (
     <View style={styles.container}>
-      {/* Row 1: Building Chips */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionLabel}>BỘ LỌC KHÔNG GIAN</Text>
+        {isFiltered && (
+          <TouchableOpacity
+            onPress={resetFilters}
+            style={styles.resetBtn}
+            activeOpacity={0.7}
+          >
+            <Feather name="rotate-ccw" size={11} color="#71717a" />
+            <Text style={styles.resetText}>Đặt lại</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.scrollRow}
+      >
+        {/* Buildings */}
         {BUILDINGS.map((b) => {
           const isSelected = selectedBuilding === b.value;
           return (
             <TouchableOpacity
-              key={b.value}
+              key={`b-${b.value}`}
               onPress={() => setSelectedBuilding(b.value)}
-              style={[styles.chip, isSelected && styles.chipActive]}
-              activeOpacity={0.7}
+              style={[styles.pill, isSelected && styles.pillActive]}
+              activeOpacity={0.8}
             >
-              <Text style={[styles.chipText, isSelected && styles.chipTextActive]}>
+              <Text style={[styles.pillText, isSelected && styles.pillTextActive]}>
                 {b.label}
               </Text>
             </TouchableOpacity>
           );
         })}
-      </ScrollView>
 
-      {/* Row 2: Room Type Chips */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
+        <View style={styles.divider} />
+
+        {/* Room Types */}
         {ROOM_TYPES.map((t) => {
           const isSelected = selectedType === t.value;
           return (
             <TouchableOpacity
-              key={t.value}
+              key={`t-${t.value}`}
               onPress={() => setSelectedType(t.value)}
-              style={[styles.chip, isSelected && styles.chipActive]}
-              activeOpacity={0.7}
+              style={[styles.pill, isSelected && styles.pillActive]}
+              activeOpacity={0.8}
             >
-              <Text style={[styles.chipText, isSelected && styles.chipTextActive]}>
+              <Text style={[styles.pillText, isSelected && styles.pillTextActive]}>
                 {t.label}
               </Text>
             </TouchableOpacity>
           );
         })}
-      </ScrollView>
 
-      {/* Row 3: Capacity Chips */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
+        <View style={styles.divider} />
+
+        {/* Capacity */}
         {CAPACITIES.map((c) => {
           const isSelected = minCapacity === c.value;
           return (
             <TouchableOpacity
-              key={c.value}
+              key={`c-${c.value}`}
               onPress={() => setMinCapacity(c.value)}
-              style={[styles.chip, isSelected && styles.chipActive]}
-              activeOpacity={0.7}
+              style={[styles.pill, isSelected && styles.pillActive]}
+              activeOpacity={0.8}
             >
-              <Text style={[styles.chipText, isSelected && styles.chipTextActive]}>
+              <Text style={[styles.pillText, isSelected && styles.pillTextActive]}>
                 {c.label}
               </Text>
             </TouchableOpacity>
@@ -98,34 +121,64 @@ export const FilterChips: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: {
-    paddingVertical: 6,
     backgroundColor: "#ffffff",
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#e2e8f0",
+    borderBottomWidth: 1,
+    borderBottomColor: "#f4f4f5",
+    paddingTop: 8,
+    paddingBottom: 10,
   },
-  row: {
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: 16,
-    paddingVertical: 4,
-    gap: 8,
+    marginBottom: 6,
   },
-  chip: {
-    paddingHorizontal: 12,
+  sectionLabel: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#a1a1aa",
+    letterSpacing: 0.8,
+  },
+  resetBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  resetText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#71717a",
+  },
+  scrollRow: {
+    paddingHorizontal: 16,
+    gap: 6,
+    alignItems: "center",
+  },
+  divider: {
+    width: 1,
+    height: 16,
+    backgroundColor: "#e4e4e7",
+    marginHorizontal: 4,
+  },
+  pill: {
+    paddingHorizontal: 11,
     paddingVertical: 6,
-    borderRadius: 16,
-    backgroundColor: "#f1f5f9",
+    borderRadius: 7,
+    backgroundColor: "#f4f4f5",
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: "#e4e4e7",
   },
-  chipActive: {
-    backgroundColor: "#2563eb",
-    borderColor: "#2563eb",
+  pillActive: {
+    backgroundColor: "#09090b",
+    borderColor: "#09090b",
   },
-  chipText: {
+  pillText: {
     fontSize: 12,
     fontWeight: "500",
-    color: "#475569",
+    color: "#52525b",
   },
-  chipTextActive: {
+  pillTextActive: {
     color: "#ffffff",
     fontWeight: "600",
   },

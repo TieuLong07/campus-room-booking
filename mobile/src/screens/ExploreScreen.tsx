@@ -7,9 +7,11 @@ import {
   TextInput,
   ActivityIndicator,
   RefreshControl,
+  TouchableOpacity,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { Feather } from "@expo/vector-icons";
 import { useRooms } from "../api/client";
 import { useFilterStore } from "../stores/filterStore";
 import { FilterChips } from "../components/FilterChips";
@@ -28,6 +30,7 @@ export const ExploreScreen: React.FC = () => {
     selectedBuilding,
     selectedType,
     minCapacity,
+    resetFilters,
   } = useFilterStore();
 
   const filterParams = useMemo(
@@ -55,7 +58,6 @@ export const ExploreScreen: React.FC = () => {
     [navigation]
   );
 
-  // 60fps Optimization: renderItem callback tách rời, memoized
   const renderItem = useCallback(
     ({ item }: { item: Room }) => (
       <RoomCard room={item} onPress={handleRoomPress} />
@@ -65,7 +67,6 @@ export const ExploreScreen: React.FC = () => {
 
   const keyExtractor = useCallback((item: Room) => item.id, []);
 
-  // 60fps Optimization: Fixed layout để FlatList không phải tính toán kích thước dynamic
   const getItemLayout = useCallback(
     (_: any, index: number) => ({
       length: TOTAL_ROOM_ITEM_HEIGHT,
@@ -77,34 +78,50 @@ export const ExploreScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* Search Input */}
-      <View style={styles.searchContainer}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Tìm phòng theo tên hoặc mã (vd: A-201, Lab...)"
-          placeholderTextColor="#94a3b8"
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          clearButtonMode="while-editing"
-          autoCorrect={false}
-        />
+      {/* Search Bar */}
+      <View style={styles.searchSection}>
+        <View style={styles.searchBox}>
+          <Feather name="search" size={16} color="#71717a" style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Tìm theo mã phòng hoặc tên (vd: A-201, AI, Mac)..."
+            placeholderTextColor="#a1a1aa"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            autoCorrect={false}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery("")} activeOpacity={0.7}>
+              <Feather name="x" size={15} color="#71717a" />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
-      {/* Multi-parameter Filter Chips */}
+      {/* Filter Chips */}
       <FilterChips />
+
+      {/* Subheader status */}
+      {!isLoading && !error && (
+        <View style={styles.countBar}>
+          <Text style={styles.countText}>
+            Hiển thị {rooms.length} không gian khả dụng
+          </Text>
+        </View>
+      )}
 
       {/* Content Feed */}
       {isLoading ? (
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#2563eb" />
+          <ActivityIndicator size="small" color="#09090b" />
           <Text style={styles.loadingText}>Đang tải danh sách phòng...</Text>
         </View>
       ) : error ? (
         <View style={styles.centerContainer}>
-          <Text style={styles.errorText}>Không thể kết nối máy chủ backend.</Text>
-          <Text style={styles.retryText} onPress={() => refetch()}>
-            Nhấn vào đây để thử lại
-          </Text>
+          <Text style={styles.errorText}>Không thể kết nối máy chủ.</Text>
+          <TouchableOpacity onPress={() => refetch()} style={styles.retryBtn}>
+            <Text style={styles.retryText}>Thử tải lại</Text>
+          </TouchableOpacity>
         </View>
       ) : (
         <FlatList
@@ -119,14 +136,26 @@ export const ExploreScreen: React.FC = () => {
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           refreshControl={
-            <RefreshControl refreshing={isRefetching} onRefresh={refetch} />
+            <RefreshControl
+              refreshing={isRefetching}
+              onRefresh={refetch}
+              tintColor="#09090b"
+            />
           }
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
+              <Feather name="inbox" size={32} color="#a1a1aa" />
               <Text style={styles.emptyTitle}>Không tìm thấy phòng phù hợp</Text>
               <Text style={styles.emptySubtitle}>
-                Thử đổi từ khoá tìm kiếm hoặc reset các bộ lọc
+                Thử thay đổi từ khoá hoặc điều chỉnh lại các tiêu chí bộ lọc.
               </Text>
+              <TouchableOpacity
+                onPress={resetFilters}
+                style={styles.emptyResetBtn}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.emptyResetText}>Đặt lại bộ lọc</Text>
+              </TouchableOpacity>
             </View>
           }
         />
@@ -138,26 +167,45 @@ export const ExploreScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f8fafc",
+    backgroundColor: "#fafafa",
   },
-  searchContainer: {
+  searchSection: {
     paddingHorizontal: 16,
-    paddingTop: 12,
+    paddingTop: 10,
     paddingBottom: 8,
     backgroundColor: "#ffffff",
   },
-  searchInput: {
-    height: 42,
-    backgroundColor: "#f1f5f9",
+  searchBox: {
+    height: 40,
+    backgroundColor: "#f4f4f5",
     borderRadius: 8,
     paddingHorizontal: 12,
-    fontSize: 14,
-    color: "#0f172a",
+    flexDirection: "row",
+    alignItems: "center",
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: "#e4e4e7",
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 13,
+    color: "#09090b",
+    paddingVertical: 0,
+  },
+  countBar: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  countText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#71717a",
+    letterSpacing: -0.1,
   },
   listContent: {
-    paddingTop: 12,
+    paddingTop: 4,
     paddingBottom: 24,
   },
   centerContainer: {
@@ -168,34 +216,56 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 10,
-    fontSize: 13,
-    color: "#64748b",
+    fontSize: 12,
+    color: "#71717a",
   },
   errorText: {
-    fontSize: 14,
+    fontSize: 13,
     color: "#dc2626",
-    fontWeight: "500",
+    fontWeight: "600",
+  },
+  retryBtn: {
+    marginTop: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 6,
+    backgroundColor: "#09090b",
   },
   retryText: {
-    marginTop: 8,
-    fontSize: 13,
-    color: "#2563eb",
-    textDecorationLine: "underline",
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#ffffff",
   },
   emptyContainer: {
     alignItems: "center",
-    paddingVertical: 48,
+    paddingVertical: 64,
     paddingHorizontal: 24,
   },
   emptyTitle: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#334155",
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#18181b",
+    marginTop: 12,
   },
   emptySubtitle: {
-    fontSize: 13,
-    color: "#64748b",
-    marginTop: 6,
+    fontSize: 12,
+    color: "#71717a",
+    marginTop: 4,
     textAlign: "center",
+    maxWidth: 260,
+  },
+  emptyResetBtn: {
+    marginTop: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "#e4e4e7",
+    backgroundColor: "#ffffff",
+  },
+  emptyResetText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#09090b",
   },
 });

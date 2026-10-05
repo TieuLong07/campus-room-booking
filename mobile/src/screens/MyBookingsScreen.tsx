@@ -9,26 +9,28 @@ import {
   RefreshControl,
   Alert,
 } from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import { Feather } from "@expo/vector-icons";
 import { useMyBookings, useCancelBooking } from "../api/client";
 import { Booking } from "../types";
 
 export const MyBookingsScreen: React.FC = () => {
+  const navigation = useNavigation<any>();
   const { data: bookings = [], isLoading, isRefetching, refetch } = useMyBookings();
   const cancelMutation = useCancelBooking();
 
   const handleCancel = (booking: Booking) => {
     Alert.alert(
-      "Xác nhận huỷ lịch",
-      `Bạn có chắc chắn muốn huỷ lịch đặt phòng ${booking.room?.name || ""} ngày ${booking.bookingDate} (${booking.startTime} - ${booking.endTime}) không?`,
+      "Huỷ lịch đặt phòng",
+      `Bạn có chắc chắn muốn huỷ lịch phòng ${booking.room?.code || ""} ngày ${booking.bookingDate} (${booking.startTime} - ${booking.endTime})?`,
       [
-        { text: "Không", style: "cancel" },
+        { text: "Đóng", style: "cancel" },
         {
-          text: "Huỷ lịch",
+          text: "Xác nhận huỷ",
           style: "destructive",
           onPress: async () => {
             try {
               await cancelMutation.mutateAsync(booking.id);
-              Alert.alert("Thành công", "Đã huỷ lịch đặt phòng.");
             } catch (err: any) {
               Alert.alert("Lỗi", err.response?.data?.message || "Không thể huỷ lịch");
             }
@@ -44,13 +46,25 @@ export const MyBookingsScreen: React.FC = () => {
     return (
       <View style={[styles.card, isCancelled && styles.cardCancelled]}>
         <View style={styles.cardHeader}>
-          <Text style={styles.roomCode}>{item.room?.code || "Phòng"}</Text>
+          <View style={styles.codeGroup}>
+            <Text style={[styles.roomCode, isCancelled && styles.textMuted]}>
+              {item.room?.code || "PHÒNG"}
+            </Text>
+            <Text style={styles.roomType}>{item.room?.type || "STUDY"}</Text>
+          </View>
+
           <View
             style={[
               styles.statusBadge,
               isCancelled ? styles.statusBadgeCancelled : styles.statusBadgeConfirmed,
             ]}
           >
+            <View
+              style={[
+                styles.statusDot,
+                isCancelled ? styles.dotCancelled : styles.dotConfirmed,
+              ]}
+            />
             <Text
               style={[
                 styles.statusText,
@@ -62,23 +76,39 @@ export const MyBookingsScreen: React.FC = () => {
           </View>
         </View>
 
-        <Text style={styles.roomName}>{item.room?.name || "Phòng học cơ sở"}</Text>
-        <Text style={styles.detailText}>
-          Ngày: {item.bookingDate} | Giờ: {item.startTime} - {item.endTime}
-        </Text>
-        <Text style={styles.subDetailText}>
-          {item.room?.building} • Tầng {item.room?.floor}
+        <Text style={[styles.roomName, isCancelled && styles.textMuted]}>
+          {item.room?.name || "Không gian campus"}
         </Text>
 
-        {!isCancelled && (
-          <TouchableOpacity
-            style={styles.cancelButton}
-            onPress={() => handleCancel(item)}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.cancelButtonText}>Huỷ lịch này</Text>
-          </TouchableOpacity>
-        )}
+        <View style={styles.infoRow}>
+          <View style={styles.infoItem}>
+            <Feather name="calendar" size={12} color="#71717a" />
+            <Text style={styles.infoText}>{item.bookingDate}</Text>
+          </View>
+          <View style={styles.infoItem}>
+            <Feather name="clock" size={12} color="#71717a" />
+            <Text style={styles.infoTextBold}>
+              {item.startTime} - {item.endTime}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.footerRow}>
+          <Text style={styles.locationText}>
+            {item.room?.building}, Tầng {item.room?.floor}
+          </Text>
+
+          {!isCancelled && (
+            <TouchableOpacity
+              style={styles.cancelBtn}
+              onPress={() => handleCancel(item)}
+              activeOpacity={0.7}
+            >
+              <Feather name="x" size={12} color="#71717a" />
+              <Text style={styles.cancelBtnText}>Huỷ lịch</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
     );
   };
@@ -87,8 +117,8 @@ export const MyBookingsScreen: React.FC = () => {
     <View style={styles.container}>
       {isLoading ? (
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#2563eb" />
-          <Text style={styles.loadingText}>Đang tải lịch đặt phòng...</Text>
+          <ActivityIndicator size="small" color="#09090b" />
+          <Text style={styles.loadingText}>Đang tải lịch đặt...</Text>
         </View>
       ) : (
         <FlatList
@@ -96,15 +126,28 @@ export const MyBookingsScreen: React.FC = () => {
           keyExtractor={(item) => item.id}
           renderItem={renderBookingItem}
           contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
           refreshControl={
-            <RefreshControl refreshing={isRefetching} onRefresh={refetch} />
+            <RefreshControl
+              refreshing={isRefetching}
+              onRefresh={refetch}
+              tintColor="#09090b"
+            />
           }
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyTitle}>Chưa có lịch đặt phòng nào</Text>
+              <Feather name="calendar" size={32} color="#a1a1aa" />
+              <Text style={styles.emptyTitle}>Chưa có lịch đặt phòng</Text>
               <Text style={styles.emptySubtitle}>
-                Chuyển qua tab "Khám phá" để chọn phòng và khung giờ phù hợp
+                Chọn phòng và khung giờ trống để đăng ký sử dụng không gian.
               </Text>
+              <TouchableOpacity
+                onPress={() => navigation.navigate("Explore")}
+                style={styles.emptyExploreBtn}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.emptyExploreText}>Khám phá phòng học</Text>
+              </TouchableOpacity>
             </View>
           }
         />
@@ -116,11 +159,11 @@ export const MyBookingsScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f8fafc",
+    backgroundColor: "#fafafa",
   },
   listContent: {
     padding: 16,
-    gap: 12,
+    gap: 10,
   },
   centerContainer: {
     flex: 1,
@@ -129,97 +172,169 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 10,
-    fontSize: 13,
-    color: "#64748b",
+    fontSize: 12,
+    color: "#71717a",
   },
   card: {
     backgroundColor: "#ffffff",
-    borderRadius: 10,
+    borderRadius: 8,
     padding: 14,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: "#e4e4e7",
   },
   cardCancelled: {
-    backgroundColor: "#f8fafc",
-    opacity: 0.7,
+    backgroundColor: "#fcfcfc",
+    borderColor: "#f4f4f5",
+    opacity: 0.65,
   },
   cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
+  codeGroup: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: 6,
+  },
   roomCode: {
     fontSize: 16,
-    fontWeight: "700",
-    color: "#0f172a",
+    fontWeight: "800",
+    color: "#09090b",
+    letterSpacing: -0.3,
+  },
+  roomType: {
+    fontSize: 10,
+    fontWeight: "600",
+    color: "#a1a1aa",
   },
   statusBadge: {
-    paddingHorizontal: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 7,
     paddingVertical: 3,
-    borderRadius: 6,
+    borderRadius: 5,
+    borderWidth: 1,
   },
   statusBadgeConfirmed: {
-    backgroundColor: "#dcfce7",
+    backgroundColor: "#f0fdf4",
+    borderColor: "#bbf7d0",
   },
   statusBadgeCancelled: {
-    backgroundColor: "#fee2e2",
+    backgroundColor: "#f4f4f5",
+    borderColor: "#e4e4e7",
+  },
+  statusDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+  },
+  dotConfirmed: {
+    backgroundColor: "#16a34a",
+  },
+  dotCancelled: {
+    backgroundColor: "#a1a1aa",
   },
   statusText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: "600",
+    letterSpacing: -0.1,
   },
   statusTextConfirmed: {
-    color: "#15803d",
+    color: "#16a34a",
   },
   statusTextCancelled: {
-    color: "#b91c1c",
+    color: "#71717a",
   },
   roomName: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#334155",
-    marginTop: 4,
-  },
-  detailText: {
     fontSize: 13,
-    fontWeight: "500",
-    color: "#2563eb",
-    marginTop: 6,
+    fontWeight: "600",
+    color: "#27272a",
+    marginTop: 4,
+    letterSpacing: -0.1,
   },
-  subDetailText: {
-    fontSize: 12,
-    color: "#64748b",
-    marginTop: 2,
+  textMuted: {
+    color: "#71717a",
   },
-  cancelButton: {
-    marginTop: 12,
-    alignSelf: "flex-end",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+  infoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    marginTop: 10,
+    paddingVertical: 7,
+    paddingHorizontal: 10,
+    backgroundColor: "#f4f4f5",
     borderRadius: 6,
-    borderWidth: 1,
-    borderColor: "#fca5a5",
-    backgroundColor: "#fff1f2",
   },
-  cancelButtonText: {
+  infoItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+  },
+  infoText: {
+    fontSize: 12,
+    color: "#52525b",
+  },
+  infoTextBold: {
     fontSize: 12,
     fontWeight: "600",
-    color: "#b91c1c",
+    color: "#09090b",
+  },
+  footerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 10,
+  },
+  locationText: {
+    fontSize: 11,
+    color: "#71717a",
+  },
+  cancelBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 5,
+    borderWidth: 1,
+    borderColor: "#e4e4e7",
+    backgroundColor: "#ffffff",
+  },
+  cancelBtnText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#71717a",
   },
   emptyContainer: {
     alignItems: "center",
-    paddingVertical: 48,
+    paddingVertical: 64,
     paddingHorizontal: 24,
   },
   emptyTitle: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#334155",
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#18181b",
+    marginTop: 12,
   },
   emptySubtitle: {
-    fontSize: 13,
-    color: "#64748b",
-    marginTop: 6,
+    fontSize: 12,
+    color: "#71717a",
+    marginTop: 4,
     textAlign: "center",
+    maxWidth: 250,
+  },
+  emptyExploreBtn: {
+    marginTop: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 6,
+    backgroundColor: "#09090b",
+  },
+  emptyExploreText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#ffffff",
   },
 });

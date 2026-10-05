@@ -10,6 +10,7 @@ import {
   Alert,
 } from "react-native";
 import { RouteProp, useRoute, useNavigation } from "@react-navigation/native";
+import { Feather } from "@expo/vector-icons";
 import { useRoom, useRoomSlots, useCreateBooking } from "../api/client";
 import { TimeSlotPicker } from "../components/TimeSlotPicker";
 import { RootStackParamList, TimeSlot } from "../types";
@@ -21,7 +22,6 @@ export const RoomDetailScreen: React.FC = () => {
   const navigation = useNavigation();
   const { roomId } = route.params;
 
-  // Ngày đặt: Mặc định là ngày hôm nay dạng YYYY-MM-DD
   const todayStr = useMemo(() => new Date().toISOString().split("T")[0], []);
   const tomorrowStr = useMemo(() => {
     const d = new Date();
@@ -38,16 +38,18 @@ export const RoomDetailScreen: React.FC = () => {
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
 
   const { data: room, isLoading: isLoadingRoom } = useRoom(roomId);
-  const { data: slotData, isLoading: isLoadingSlots, refetch: refetchSlots } = useRoomSlots(
-    roomId,
-    selectedDate
-  );
+  const {
+    data: slotData,
+    isLoading: isLoadingSlots,
+    isRefetching: isRefetchingSlots,
+    refetch: refetchSlots,
+  } = useRoomSlots(roomId, selectedDate);
 
   const bookingMutation = useCreateBooking();
 
   const handleBooking = async () => {
     if (!selectedSlot) {
-      Alert.alert("Thông báo", "Vui lòng chọn một khung giờ khả dụng");
+      Alert.alert("Chưa chọn giờ", "Vui lòng chọn một khung giờ còn trống");
       return;
     }
 
@@ -63,7 +65,7 @@ export const RoomDetailScreen: React.FC = () => {
 
       Alert.alert(
         "Đặt phòng thành công",
-        `Đã đặt ${room?.name} vào khung giờ ${selectedSlot.startTime} - ${selectedSlot.endTime} ngày ${selectedDate}`,
+        `Đã xác nhận đặt ${room?.code} (${selectedSlot.startTime} - ${selectedSlot.endTime}, ngày ${selectedDate})`,
         [
           {
             text: "Xem lịch của tôi",
@@ -80,7 +82,7 @@ export const RoomDetailScreen: React.FC = () => {
         Alert.alert(
           "Xung đột lịch đặt",
           err.response?.data?.message ||
-            "Khung giờ này vừa bị sinh viên khác đặt trước. Vui lòng chọn khung giờ khác!"
+            "Khung giờ này vừa có người khác đặt trước. Vui lòng chọn khung giờ khác."
         );
         refetchSlots();
         setSelectedSlot(null);
@@ -93,41 +95,51 @@ export const RoomDetailScreen: React.FC = () => {
   if (isLoadingRoom || !room) {
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#2563eb" />
+        <ActivityIndicator size="small" color="#09090b" />
       </View>
     );
   }
 
   return (
     <View style={styles.wrapper}>
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
         <Image source={{ uri: room.imageUrl }} style={styles.bannerImage} />
 
         <View style={styles.content}>
-          <View style={styles.badgeRow}>
+          <View style={styles.headerRow}>
             <Text style={styles.codeText}>{room.code}</Text>
             <View style={styles.typeBadge}>
               <Text style={styles.typeBadgeText}>{room.type}</Text>
             </View>
           </View>
 
-          <Text style={styles.title}>{room.name}</Text>
-          <Text style={styles.subtitle}>
-            {room.building} • Tầng {room.floor} • Sức chứa tối đa: {room.capacity} sinh viên
-          </Text>
+          <Text style={styles.titleText}>{room.name}</Text>
 
-          {/* Tiện ích */}
-          <Text style={styles.sectionTitle}>Trang thiết bị & Tiện ích</Text>
+          <View style={styles.metaRow}>
+            <View style={styles.metaItem}>
+              <Feather name="map-pin" size={13} color="#71717a" />
+              <Text style={styles.metaText}>{room.building}, Tầng {room.floor}</Text>
+            </View>
+            <Text style={styles.metaDivider}>•</Text>
+            <View style={styles.metaItem}>
+              <Feather name="users" size={13} color="#71717a" />
+              <Text style={styles.metaText}>Sức chứa {room.capacity} chỗ ngồi</Text>
+            </View>
+          </View>
+
+          {/* Section: Amenities */}
+          <Text style={styles.sectionTitle}>TRANG THIẾT BỊ VÀ TIỆN ÍCH</Text>
           <View style={styles.amenitiesContainer}>
             {room.amenities.map((item, idx) => (
               <View key={idx} style={styles.amenityChip}>
+                <Feather name="check-circle" size={11} color="#52525b" />
                 <Text style={styles.amenityText}>{item}</Text>
               </View>
             ))}
           </View>
 
-          {/* Chọn ngày */}
-          <Text style={styles.sectionTitle}>Chọn ngày đặt</Text>
+          {/* Section: Select Date */}
+          <Text style={styles.sectionTitle}>CHỌN NGÀY SỬ DỤNG</Text>
           <View style={styles.dateSelector}>
             {[
               { label: "Hôm nay", value: todayStr },
@@ -143,6 +155,7 @@ export const RoomDetailScreen: React.FC = () => {
                     setSelectedDate(d.value);
                     setSelectedSlot(null);
                   }}
+                  activeOpacity={0.8}
                 >
                   <Text style={[styles.dateText, isSelected && styles.dateTextActive]}>
                     {d.label}
@@ -155,16 +168,25 @@ export const RoomDetailScreen: React.FC = () => {
             })}
           </View>
 
-          {/* Chọn slot với Conflict Prevention */}
+          {/* Section: Select Slot */}
           <View style={styles.slotHeaderRow}>
-            <Text style={styles.sectionTitle}>Khung giờ trong ngày</Text>
-            <TouchableOpacity onPress={() => refetchSlots()}>
-              <Text style={styles.refreshText}>Làm mới slot</Text>
+            <Text style={styles.sectionTitle}>KHUNG GIỜ KHẢ DỤNG</Text>
+            <TouchableOpacity
+              onPress={() => refetchSlots()}
+              style={styles.refreshBtn}
+              activeOpacity={0.7}
+            >
+              <Feather
+                name="rotate-cw"
+                size={11}
+                color={isRefetchingSlots ? "#09090b" : "#71717a"}
+              />
+              <Text style={styles.refreshText}>Cập nhật slot</Text>
             </TouchableOpacity>
           </View>
 
           {isLoadingSlots ? (
-            <ActivityIndicator size="small" color="#2563eb" style={{ marginVertical: 20 }} />
+            <ActivityIndicator size="small" color="#09090b" style={{ marginVertical: 24 }} />
           ) : (
             <TimeSlotPicker
               slots={slotData?.slots || []}
@@ -175,12 +197,14 @@ export const RoomDetailScreen: React.FC = () => {
         </View>
       </ScrollView>
 
-      {/* Booking Action Footer */}
+      {/* Footer Bar */}
       <View style={styles.footer}>
         <View style={styles.footerInfo}>
-          <Text style={styles.footerLabel}>Khung giờ đã chọn:</Text>
+          <Text style={styles.footerLabel}>KHUNG GIỜ ĐÃ CHỌN</Text>
           <Text style={styles.footerValue}>
-            {selectedSlot ? `${selectedSlot.startTime} - ${selectedSlot.endTime}` : "Chưa chọn"}
+            {selectedSlot
+              ? `${selectedSlot.startTime} - ${selectedSlot.endTime}`
+              : "Chưa chọn khung giờ"}
           </Text>
         </View>
 
@@ -191,9 +215,10 @@ export const RoomDetailScreen: React.FC = () => {
           ]}
           disabled={!selectedSlot || bookingMutation.isPending}
           onPress={handleBooking}
+          activeOpacity={0.85}
         >
           {bookingMutation.isPending ? (
-            <ActivityIndicator color="#ffffff" />
+            <ActivityIndicator color="#ffffff" size="small" />
           ) : (
             <Text style={styles.bookButtonText}>Xác nhận đặt phòng</Text>
           )}
@@ -209,7 +234,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#ffffff",
   },
   container: {
-    paddingBottom: 100,
+    paddingBottom: 90,
   },
   centerContainer: {
     flex: 1,
@@ -218,111 +243,141 @@ const styles = StyleSheet.create({
   },
   bannerImage: {
     width: "100%",
-    height: 220,
-    backgroundColor: "#cbd5e1",
+    height: 200,
+    backgroundColor: "#f4f4f5",
   },
   content: {
     padding: 16,
   },
-  badgeRow: {
+  headerRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
   codeText: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: "800",
-    color: "#0f172a",
+    color: "#09090b",
+    letterSpacing: -0.5,
   },
   typeBadge: {
-    backgroundColor: "#e0f2fe",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
+    backgroundColor: "#f4f4f5",
+    borderWidth: 1,
+    borderColor: "#e4e4e7",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
   },
   typeBadgeText: {
-    color: "#0369a1",
-    fontSize: 12,
+    color: "#09090b",
+    fontSize: 11,
     fontWeight: "700",
+    letterSpacing: -0.1,
   },
-  title: {
-    fontSize: 18,
+  titleText: {
+    fontSize: 16,
     fontWeight: "700",
-    color: "#1e293b",
-    marginTop: 6,
-  },
-  subtitle: {
-    fontSize: 13,
-    color: "#64748b",
+    color: "#18181b",
     marginTop: 4,
+    letterSpacing: -0.3,
+  },
+  metaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 8,
+  },
+  metaItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+  },
+  metaText: {
+    fontSize: 12,
+    color: "#71717a",
+  },
+  metaDivider: {
+    fontSize: 11,
+    color: "#d4d4d8",
   },
   sectionTitle: {
-    fontSize: 15,
+    fontSize: 10,
     fontWeight: "700",
-    color: "#0f172a",
-    marginTop: 20,
-    marginBottom: 10,
+    color: "#a1a1aa",
+    letterSpacing: 0.8,
+    marginTop: 22,
+    marginBottom: 8,
   },
   amenitiesContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 8,
+    gap: 6,
   },
   amenityChip: {
-    backgroundColor: "#f8fafc",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: "#fafafa",
     borderWidth: 1,
-    borderColor: "#e2e8f0",
-    paddingHorizontal: 10,
+    borderColor: "#e4e4e7",
+    paddingHorizontal: 9,
     paddingVertical: 5,
     borderRadius: 6,
   },
   amenityText: {
-    fontSize: 12,
-    color: "#475569",
+    fontSize: 11,
+    fontWeight: "500",
+    color: "#3f3f46",
   },
   dateSelector: {
     flexDirection: "row",
-    gap: 8,
+    gap: 7,
   },
   dateButton: {
     flex: 1,
-    paddingVertical: 10,
-    paddingHorizontal: 8,
-    borderRadius: 8,
-    backgroundColor: "#f8fafc",
+    paddingVertical: 9,
+    paddingHorizontal: 6,
+    borderRadius: 7,
+    backgroundColor: "#fafafa",
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: "#e4e4e7",
     alignItems: "center",
   },
   dateButtonActive: {
-    backgroundColor: "#eff6ff",
-    borderColor: "#2563eb",
+    backgroundColor: "#09090b",
+    borderColor: "#09090b",
   },
   dateText: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: "#334155",
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#27272a",
   },
   dateTextActive: {
-    color: "#2563eb",
+    color: "#ffffff",
   },
   dateSubText: {
-    fontSize: 11,
-    color: "#94a3b8",
+    fontSize: 10,
+    color: "#a1a1aa",
     marginTop: 2,
   },
   dateSubTextActive: {
-    color: "#3b82f6",
+    color: "#d4d4d8",
   },
   slotHeaderRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
+  refreshBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 14,
+  },
   refreshText: {
-    fontSize: 12,
-    color: "#2563eb",
+    fontSize: 11,
     fontWeight: "600",
+    color: "#71717a",
   },
   footer: {
     position: "absolute",
@@ -331,10 +386,10 @@ const styles = StyleSheet.create({
     right: 0,
     backgroundColor: "#ffffff",
     paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 24,
+    paddingTop: 10,
+    paddingBottom: 18,
     borderTopWidth: 1,
-    borderTopColor: "#e2e8f0",
+    borderTopColor: "#f4f4f5",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -343,29 +398,34 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   footerLabel: {
-    fontSize: 11,
-    color: "#64748b",
+    fontSize: 9,
+    fontWeight: "700",
+    color: "#a1a1aa",
+    letterSpacing: 0.5,
   },
   footerValue: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "700",
-    color: "#0f172a",
+    color: "#09090b",
     marginTop: 2,
+    letterSpacing: -0.2,
   },
   bookButton: {
-    backgroundColor: "#2563eb",
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 8,
-    minWidth: 150,
+    backgroundColor: "#09090b",
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 7,
+    minWidth: 140,
     alignItems: "center",
+    justifyContent: "center",
   },
   bookButtonDisabled: {
-    backgroundColor: "#cbd5e1",
+    backgroundColor: "#e4e4e7",
   },
   bookButtonText: {
     color: "#ffffff",
-    fontWeight: "700",
-    fontSize: 14,
+    fontWeight: "600",
+    fontSize: 13,
+    letterSpacing: -0.2,
   },
 });
