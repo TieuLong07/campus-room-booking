@@ -15,6 +15,7 @@ import { Feather } from "@expo/vector-icons";
 import { useRooms } from "../api/client";
 import { useFilterStore } from "../stores/filterStore";
 import { FilterChips } from "../components/FilterChips";
+import { UserAuthHeader } from "../components/UserAuthHeader";
 import {
   RoomCard,
   TOTAL_ROOM_ITEM_HEIGHT,
@@ -78,6 +79,9 @@ export const ExploreScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
+      {/* User / Google Auth Bar */}
+      <UserAuthHeader />
+
       {/* Search Bar */}
       <View style={styles.searchSection}>
         <View style={styles.searchBox}>
