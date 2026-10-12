@@ -16,6 +16,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
+      ANDROID_HOME: /usr/local/lib/android/sdk
       EXPO_PUBLIC_SUPABASE_URL: "https://qnkfsqvddyizmfdyfybv.supabase.co"
       EXPO_PUBLIC_SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFua2ZzcXZkZHlpem1mZHlmeWJ2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTExODM2OTcsImV4cCI6MjEwNjc1OTY5N30.0ONjZVgxR4Yllf2Pwq62509ugCMpfKulLC1Uns2lc_o"
 
@@ -29,15 +30,15 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
           cache-dependency-path: mobile/package-lock.json
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
 
       - name: Install dependencies in mobile
         working-directory: mobile
