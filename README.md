@@ -2,6 +2,14 @@
 
 Ứng dụng di động đặt phòng tự học, phòng họp seminar và phòng lab thực hành trong khuôn viên trường đại học (Campus Room & Lab Booking).
 
+[![Build and Release Android APK](https://github.com/TieuLong07/campus-room-booking/actions/workflows/build-apk.yml/badge.svg)](https://github.com/TieuLong07/campus-room-booking/actions/workflows/build-apk.yml)
+
+### 📲 Tải ứng dụng Android (APK) & Nộp bài
+* **Tải file APK trực tiếp**: [**CampusRoomBooking-v1.0.0.apk**](https://github.com/TieuLong07/campus-room-booking/releases/download/v1.0.0/CampusRoomBooking-v1.0.0.apk)
+* **Trang GitHub Release**: [https://github.com/TieuLong07/campus-room-booking/releases/tag/v1.0.0](https://github.com/TieuLong07/campus-room-booking/releases/tag/v1.0.0)
+* **GitHub Repository**: [https://github.com/TieuLong07/campus-room-booking](https://github.com/TieuLong07/campus-room-booking)
+* **Live Cloud Backend**: Supabase PostgreSQL (`qnkfsqvddyizmfdyfybv.supabase.co`) tích hợp Google OAuth và Database Trigger chống trùng lịch.
+
 ---
 
 ## 1. Yêu cầu & Công nghệ (Tech Stack)
