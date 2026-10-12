@@ -1,0 +1,88 @@
+name: Build and Release Android APK
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+
+    env:
+      EXPO_PUBLIC_SUPABASE_URL: "https://qnkfsqvddyizmfdyfybv.supabase.co"
+      EXPO_PUBLIC_SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFua2ZzcXZkZHlpem1mZHlmeWJ2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTExODM2OTcsImV4cCI6MjEwNjc1OTY5N30.0ONjZVgxR4Yllf2Pwq62509ugCMpfKulLC1Uns2lc_o"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Install dependencies in mobile
+        working-directory: mobile
+        run: npm install
+
+      - name: Generate Android native project (Expo Prebuild)
+        working-directory: mobile
+        run: npx expo prebuild --platform android --clean
+
+      - name: Make Gradle executable
+        working-directory: mobile/android
+        run: chmod +x gradlew
+
+      - name: Build Android APK
+        working-directory: mobile/android
+        run: ./gradlew assembleDebug --no-daemon
+
+      - name: Rename APK
+        run: |
+          mkdir -p release-output
+          cp mobile/android/app/build/outputs/apk/debug/app-debug.apk release-output/CampusRoomBooking-v1.0.0.apk
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CampusRoomBooking-APK
+          path: release-output/CampusRoomBooking-v1.0.0.apk
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
+        with:
+          tag_name: v1.0.0
+          name: "Campus Room Booking v1.0.0 (Android APK)"
+          body: |
+            ## Mini-Project 2: Campus Study Rooms & Labs Booking App
+            - **Framework**: React Native (Expo Managed, TS strict)
+            - **Navigation**: React Navigation 7 (Stack + Tabs)
+            - **State**: Zustand (Client) + TanStack Query (Server)
+            - **Backend Cloud**: Supabase PostgreSQL + Conflict Prevention Engine Trigger
+            
+            ### Cài đặt trên điện thoại Android
+            1. Tải file `CampusRoomBooking-v1.0.0.apk` bên dưới.
+            2. Cho phép cài đặt ứng dụng từ nguồn này (Install unknown apps).
+            3. Mở ứng dụng và trải nghiệm.
+          files: release-output/CampusRoomBooking-v1.0.0.apk
+          token: ${{ secrets.GITHUB_TOKEN }}
+          prerelease: false
